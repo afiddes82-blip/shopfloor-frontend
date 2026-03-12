@@ -13,8 +13,17 @@ export type RouterConfigPayload = {
   steps: EditableRouterStep[];
 };
 
+const API_BASE =
+  import.meta.env.VITE_API_BASE ?? "https://qdk2wkr3k2.us-east-2.awsapprunner.com";
+
+function buildUrl(path: string): string {
+  const base = API_BASE.replace(/\/+$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${cleanPath}`;
+}
+
 async function getJSON<T>(url: string): Promise<T> {
-  const r = await fetch(url, {
+  const r = await fetch(buildUrl(url), {
     credentials: "include",
   });
 
@@ -27,7 +36,7 @@ async function getJSON<T>(url: string): Promise<T> {
 }
 
 async function postJSON<T>(url: string, body: any): Promise<T> {
-  const r = await fetch(url, {
+  const r = await fetch(buildUrl(url), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

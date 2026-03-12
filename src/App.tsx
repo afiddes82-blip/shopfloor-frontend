@@ -56,14 +56,17 @@ type EditTarget = {
   row: StepRow;
 } | null;
 
-/**
- * IMPORTANT:
- * No API_BASE here.
- * These requests should go to the same origin your frontend is served from.
- * If Vite dev proxy is configured, these will proxy correctly in dev too.
- */
+const API_BASE =
+  import.meta.env.VITE_API_BASE ?? "https://qdk2wkr3k2.us-east-2.awsapprunner.com";
+
+function buildUrl(path: string): string {
+  const base = API_BASE.replace(/\/+$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${cleanPath}`;
+}
+
 async function getJSON<T>(url: string): Promise<T> {
-  const r = await fetch(url, {
+  const r = await fetch(buildUrl(url), {
     credentials: "include",
   });
 
@@ -76,7 +79,7 @@ async function getJSON<T>(url: string): Promise<T> {
 }
 
 async function postJSON<T>(url: string, body: unknown): Promise<T> {
-  const r = await fetch(url, {
+  const r = await fetch(buildUrl(url), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -122,7 +125,6 @@ function rowTimestamp(row: StepRow): string {
       ""
   );
 }
-
 const PANELS: { key: Panel; title: string; subtitle: string; emoji: string }[] = [
   { key: "START_WO", title: "Start Work Order", subtitle: "Pick verify items", emoji: "🟢" },
   { key: "RESUME_WO", title: "Resume Work Order", subtitle: "Assembly steps", emoji: "🟡" },
