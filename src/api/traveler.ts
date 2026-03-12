@@ -8,7 +8,9 @@ export type StepRow = {
 };
 
 async function getJSON<T>(url: string): Promise<T> {
-  const r = await fetch(url);
+  const r = await fetch(url, {
+    credentials: "include",
+  });
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -17,6 +19,7 @@ async function postJSON<T>(url: string, body: any): Promise<T> {
   const r = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(await r.text());
@@ -24,7 +27,9 @@ async function postJSON<T>(url: string, body: any): Promise<T> {
 }
 
 export function fetchTravelerSteps(buildId: string) {
-  return getJSON<{ build_id: string; rows: StepRow[] }>(`/api/traveler/steps/${encodeURIComponent(buildId)}`);
+  return getJSON<{ build_id: string; rows: StepRow[] }>(
+    `/traveler/steps/${encodeURIComponent(buildId)}`
+  );
 }
 
 export function upsertTravelerStep(payload: {
@@ -36,5 +41,8 @@ export function upsertTravelerStep(payload: {
   station: string;
   timestamp_utc: string;
 }) {
-  return postJSON<{ success: boolean }>(`/api/traveler/step-update`, payload);
+  return postJSON<{ success: boolean }>(
+    `/traveler/step-update`,
+    payload
+  );
 }

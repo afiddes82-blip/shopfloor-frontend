@@ -56,25 +56,38 @@ type EditTarget = {
   row: StepRow;
 } | null;
 
+/**
+ * IMPORTANT:
+ * No API_BASE here.
+ * These requests should go to the same origin your frontend is served from.
+ * If Vite dev proxy is configured, these will proxy correctly in dev too.
+ */
 async function getJSON<T>(url: string): Promise<T> {
-  const r = await fetch(url);
+  const r = await fetch(url, {
+    credentials: "include",
+  });
+
   if (!r.ok) {
     const txt = await r.text().catch(() => "");
     throw new Error(txt || `HTTP ${r.status}`);
   }
+
   return r.json();
 }
 
-async function postJSON<T>(url: string, body: any): Promise<T> {
+async function postJSON<T>(url: string, body: unknown): Promise<T> {
   const r = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify(body),
   });
+
   if (!r.ok) {
     const txt = await r.text().catch(() => "");
     throw new Error(txt || `HTTP ${r.status}`);
   }
+
   return r.json();
 }
 
@@ -204,8 +217,8 @@ export default function App() {
     setLoading(true);
     try {
       const [openRes, resumeRes] = await Promise.all([
-        getJSON<WorkOrder[]>("/api/open-workorders"),
-        getJSON<WorkOrder[]>("/api/resume-workorders"),
+        getJSON<WorkOrder[]>("/open-workorders"),
+        getJSON<WorkOrder[]>("/resume-workorders"),
       ]);
       setOpen(openRes);
       setResume(resumeRes);
@@ -345,7 +358,7 @@ export default function App() {
           throw new Error(`No base BOM item could be resolved from ${wo.item_number}.`);
         }
 
-        await postJSON("/api/build-bom-snapshot", {
+        await postJSON("/build-bom-snapshot", {
           build_id: wo.work_order_number,
           item_number: resolved.bomItem,
           original_item_number: wo.item_number,
@@ -358,7 +371,7 @@ export default function App() {
       }
 
       const data = await getJSON<{ build_id: string; rows: BomRow[] }>(
-        `/api/build-bom-components/${encodeURIComponent(wo.work_order_number)}`
+        `/build-bom-components/${encodeURIComponent(wo.work_order_number)}`
       );
 
       setBomRows(normalizeBomRows(data.rows || []));
@@ -379,7 +392,7 @@ export default function App() {
 
     setBomErr(null);
     try {
-      await postJSON("/api/build-bom-verify", {
+      await postJSON("/build-bom-verify", {
         build_id: selectedWo.work_order_number,
         component_item,
         verified: true,
@@ -388,7 +401,7 @@ export default function App() {
       });
 
       const data = await getJSON<{ build_id: string; rows: BomRow[] }>(
-        `/api/build-bom-components/${encodeURIComponent(selectedWo.work_order_number)}`
+        `/build-bom-components/${encodeURIComponent(selectedWo.work_order_number)}`
       );
 
       const rows = normalizeBomRows(data.rows || []);
@@ -397,7 +410,7 @@ export default function App() {
       const remaining = rows.filter((r) => !r.VERIFIED);
 
       if (rows.length > 0 && remaining.length === 0) {
-        await postJSON("/api/build-events", {
+        await postJSON("/build-events", {
           build_id: selectedWo.work_order_number,
           tech_id: techId.trim(),
           station: station.trim(),
@@ -463,7 +476,7 @@ export default function App() {
     setSavingReplacements(true);
 
     try {
-      await postJSON("/api/pr-replacements", {
+      await postJSON("/pr-replacements", {
         build_id: selectedWo.work_order_number,
         work_order_number: selectedWo.work_order_number,
         wo_item_number: selectedWo.item_number,
@@ -479,7 +492,7 @@ export default function App() {
         })),
       });
 
-      await postJSON("/api/build-events", {
+      await postJSON("/build-events", {
         build_id: selectedWo.work_order_number,
         tech_id: techId.trim(),
         station: station.trim(),
@@ -501,6 +514,8 @@ export default function App() {
       setSavingReplacements(false);
     }
   }
+
+ 
 
   function clearEditTarget() {
     setEditTarget(null);
